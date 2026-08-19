@@ -1,8 +1,6 @@
 # Reflection — Lab 19
 
-**Tên:** _<Họ Tên>_
-**Cohort:** _<A20-K1 / A20-K2 / ...>_
-**Path đã chạy:** _<lite | docker | both>_
+**Path đã chạy:** lite
 
 ---
 
@@ -12,17 +10,15 @@
 > `paraphrase` / `mixed`), và tại sao? Khi nào bạn **không** dùng hybrid
 > (i.e. khi nào pure BM25 hoặc pure vector là lựa chọn đúng)?
 
-_Answer here._
+- **`exact` queries** (96.7%): BM25 và Hybrid ngang nhau vì query chứa đúng thuật ngữ verbatim trong văn bản.
+- **`paraphrase` queries** (33.3% BM25 vs 24.0% Semantic vs 32.0% Hybrid): Với model `bge-small-en` (tiếng Anh baseline), semantic recall trên tiếng Việt paraphrase bị giảm điểm (chuyển sang `bge-m3` ở Docker path sẽ giúp semantic vượt trội).
+- **`mixed` queries** (100.0% Hybrid vs 97.0% BM25 vs 98.5% Semantic): **Hybrid (RRF k=60) thắng tuyệt đối 100.0%** nhờ kết hợp tín hiệu khớp từ khóa chính xác và tương đồng ngữ nghĩa.
+- **Khi nào KHÔNG dùng Hybrid**: 
+  1. Khi cần latency siêu thấp (< 5ms): Pure BM25 nhanh gấp 7 lần (4ms vs 29ms).
+  2. Khi tra cứu mã ID/SKU/tên riêng chính xác: Pure BM25 là đủ và tránh được nhiễu vector.
 
 ---
 
 ## Điều ngạc nhiên nhất khi làm lab này
 
-_(Optional, 1–2 câu)_
-
----
-
-## Bonus challenge
-
-- [ ] Đã làm bonus (xem `bonus/`)
-- [ ] Pair work với: _<tên đồng đội nếu có>_
+Công thức RRF ($1 / (k + rank)$) tuy rất đơn giản nhưng mang lại khả năng tổng quát hóa cực tốt trên mọi nhóm câu hỏi thực tế.

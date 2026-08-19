@@ -77,7 +77,8 @@ class Embedder:
         p = self.spec.provider
         if p == "fastembed":
             from fastembed import TextEmbedding
-            self._impl = TextEmbedding(model_name=self.spec.model)
+            threads = int(os.getenv("FASTEMBED_THREADS", os.cpu_count() or 4))
+            self._impl = TextEmbedding(model_name=self.spec.model, threads=threads)
         elif p == "sentence-transformers":
             try:
                 from sentence_transformers import SentenceTransformer

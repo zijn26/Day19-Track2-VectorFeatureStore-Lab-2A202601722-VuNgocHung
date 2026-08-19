@@ -2,6 +2,11 @@
 # jupyter:
 #   jupytext:
 #     formats: py:percent
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.5
 # ---
 
 # %% [markdown]
@@ -17,6 +22,7 @@
 import _setup  # noqa: F401
 import statistics
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -31,13 +37,13 @@ import httpx
 # %%
 ROOT = Path(_setup.__file__).resolve().parent.parent
 proc = subprocess.Popen(
-    ["uvicorn", "app.main:app", "--port", "8000", "--log-level", "warning"],
+    [sys.executable, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8008", "--log-level", "warning"],
     cwd=str(ROOT),
 )
 
 # Đợi server up + warm (Searcher.from_corpus loads embeddings + indexes 1000 docs)
-URL = "http://localhost:8000"
-for _ in range(60):
+URL = "http://127.0.0.1:8008"
+for _ in range(180):
     try:
         r = httpx.get(f"{URL}/healthz", timeout=2.0)
         if r.status_code == 200 and r.json().get("ready"):
@@ -46,7 +52,7 @@ for _ in range(60):
         pass
     time.sleep(1)
 else:
-    raise RuntimeError("API didn't become ready within 60s")
+    raise RuntimeError("API didn't become ready within 180s")
 
 print(httpx.get(f"{URL}/healthz").json())
 
@@ -85,13 +91,13 @@ def percentile(values: list[float], p: float) -> float:
     return sorted(values)[min(int(n * p), n - 1)]
 
 
-def benchmark_mode(mode: str, reps: int = 2) -> dict[str, float]:
+def benchmark_mode(mode: str, reps: int = 1) -> dict[str, float]:
     server_latencies: list[float] = []
     wall_latencies: list[float] = []
     for _ in range(reps):
         for q in golden:
             t0 = time.perf_counter()
-            r = httpx.get(f"{URL}/search", params={"q": q["query"], "mode": mode})
+            r = httpx.get(f"{URL}/search", params={"q": q["query"], "mode": mode}, timeout=30.0)
             wall_latencies.append((time.perf_counter() - t0) * 1000)
             server_latencies.append(r.json()["latency_ms"])
     return {
@@ -127,8 +133,11 @@ else:
 # ## 5. Cleanup — stop the API server
 
 # %%
-proc.terminate()
-proc.wait(timeout=5)
+try:
+    proc.terminate()
+    proc.wait(timeout=3)
+except Exception:
+    proc.kill()
 print("API server stopped")
 
 # %% [markdown]

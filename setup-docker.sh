@@ -60,11 +60,19 @@ if [ ! -d ".venv" ]; then
   if command -v uv >/dev/null 2>&1; then
     uv venv .venv
   else
-    python3 -m venv .venv
+    if command -v python3 >/dev/null 2>&1; then
+      python3 -m venv .venv
+    else
+      python -m venv .venv
+    fi
   fi
 fi
 # shellcheck source=/dev/null
-source .venv/bin/activate
+if [ -f ".venv/Scripts/activate" ]; then
+  source .venv/Scripts/activate
+elif [ -f ".venv/bin/activate" ]; then
+  source .venv/bin/activate
+fi
 
 # ── 4. Install lite + docker extras ─────────────────────────────────────
 NEED_DILL_OVERRIDE=$(python -c 'import sys; print(1 if sys.version_info >= (3,14) else 0)')

@@ -2,12 +2,25 @@
 ## Two paths: lightweight (default, no Docker) and full Docker.
 
 VENV     := .venv
-PY       := $(VENV)/bin/python
-PIP      := $(VENV)/bin/pip
-JUPYTER  := $(VENV)/bin/jupyter
-JUPYTEXT := $(VENV)/bin/jupytext
-UVICORN  := $(VENV)/bin/uvicorn
-PYTEST   := $(VENV)/bin/pytest
+ifeq ($(OS),Windows_NT)
+  IS_WINDOWS := 1
+else ifeq ($(OS),windows_nt)
+  IS_WINDOWS := 1
+else ifneq ($(wildcard $(VENV)/Scripts/.*),)
+  IS_WINDOWS := 1
+endif
+
+ifeq ($(IS_WINDOWS),1)
+  VENV_BIN := $(VENV)/Scripts
+else
+  VENV_BIN := $(VENV)/bin
+endif
+PY       := $(VENV_BIN)/python
+PIP      := $(VENV_BIN)/pip
+JUPYTER  := $(VENV_BIN)/jupyter
+JUPYTEXT := $(VENV_BIN)/jupytext
+UVICORN  := $(VENV_BIN)/uvicorn
+PYTEST   := $(VENV_BIN)/pytest
 
 .DEFAULT_GOAL := help
 
@@ -32,8 +45,13 @@ api: ## [lite] Start FastAPI /search on http://localhost:8000
 	@$(UVICORN) app.main:app --reload --port 8000
 
 lab: ## [lite] Open Jupyter Lab on http://localhost:8888
+ifeq ($(IS_WINDOWS),1)
+	@$(JUPYTEXT) --to notebook --update notebooks/01_embeddings_index.py notebooks/02_hybrid_search_rrf.py notebooks/03_search_api_benchmark.py notebooks/04_feast_feature_store.py notebooks/05_filtered_search.py notebooks/06_agent_retrieval.py notebooks/07_semantic_cache.py notebooks/08_feature_engineering.py
+	@$(JUPYTER) lab --notebook-dir=notebooks --ServerApp.token="" --no-browser
+else
 	@$(JUPYTEXT) --to notebook --update notebooks/[0-9]*.py 2>/dev/null || true
 	@$(JUPYTER) lab --notebook-dir=notebooks --ServerApp.token='' --no-browser
+endif
 
 benchmark: ## [both] Precision@10 (keyword/semantic/hybrid) + P99 latency table
 	@$(PY) scripts/benchmark.py

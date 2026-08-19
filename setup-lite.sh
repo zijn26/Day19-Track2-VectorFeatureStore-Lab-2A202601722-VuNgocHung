@@ -9,9 +9,16 @@ echo "[lite] Stack: fastembed + qdrant-client[memory] + rank-bm25 + feast(sqlite
 echo
 
 # ── 1. Python ───────────────────────────────────────────────────────────
-command -v python3 >/dev/null 2>&1 || { echo "[lite] python3 not found. Install Python 3.10+."; exit 1; }
-PY_VER=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-echo "[lite] system python3 is $PY_VER (the venv may differ — reported below)"
+if command -v python3 >/dev/null 2>&1; then
+  PY_CMD="python3"
+elif command -v python >/dev/null 2>&1; then
+  PY_CMD="python"
+else
+  echo "[lite] python3/python not found. Install Python 3.10+."
+  exit 1
+fi
+PY_VER=$($PY_CMD -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+echo "[lite] system python is $PY_VER (the venv may differ — reported below)"
 
 # ── 2. venv ─────────────────────────────────────────────────────────────
 if [ ! -d ".venv" ]; then
@@ -20,11 +27,15 @@ if [ ! -d ".venv" ]; then
     uv venv .venv
   else
     echo "[lite] Creating venv with python -m venv"
-    python3 -m venv .venv
+    $PY_CMD -m venv .venv
   fi
 fi
 # shellcheck source=/dev/null
-source .venv/bin/activate
+if [ -f ".venv/Scripts/activate" ]; then
+  source .venv/Scripts/activate
+elif [ -f ".venv/bin/activate" ]; then
+  source .venv/bin/activate
+fi
 
 # ── 3. Install deps ─────────────────────────────────────────────────────
 # `uv venv` may pick a different interpreter than the system `python3`, so the
